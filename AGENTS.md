@@ -70,6 +70,8 @@ into `main`; never push to `main` (it is protected).
 
 - Small, focused PRs, one change each. Merge with merge commits (no squash): the history shows what was
   built during the hackathon.
+- Before opening a PR, always ask the user first: push the branch, then show base, title, and summary
+  and wait for approval. Never open a PR unasked.
 - Every PR must pass `python -m unittest discover -s tests -t .` and `pyflakes` (install it if missing).
 - Behavior changes must include bench results: `python -m topo_agent.eval --bench --methods sam_color,meta --seeds 11,12`.
 - Use your own `MODEL_API_KEY` from hackathon credits; never commit keys.
