@@ -106,5 +106,3 @@ Everything except `topo_agent/baseline/` was written during the hackathon (from 
 ## License
 
 AGPL-3.0-or-later (see [COPYING](COPYING)).
-
-日本語: [README.ja.md](README.ja.md)

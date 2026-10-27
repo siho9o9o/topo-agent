@@ -1,23 +1,24 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
-"""ホールドの輪郭を、写真の色で見分ける(AI の輪郭は角ばっていて、押した所の形も知りたいため)。
+"""Tell hold outlines apart by photo color (AI outlines are blocky, and we also want the shape at the tapped spot).
 
-やり方(numpy を使わず、Pillow と Python だけで。ホールド1つあたり 96 画素四方くらいの小さな絵で動かす):
-1. ホールドのまわりを切り出して小さくし、真ん中の色を「ホールドの色」にする
-2. 真ん中から、同じ色の画素を順にたどって広げる。色の濃いホールドは色合い(色相)で、白・黒・灰色のホールドは明るさで比べる
-   (光の当たり方で明るさが変わっても、色合いはあまり変わらないため。壁の影やふちを拾いにくい)
-3. かたまりの中の穴(光った所など)を埋め、ふちをなぞって点を減らし、写真全体の割合に直す
-4. 切り出した四角のふちに大きくはみ出すときは、壁と同じ色につながっているので、使わない
+Method (no numpy, only Pillow and plain Python. Runs on a small image about 96 px square per hold):
+1. Crop around the hold, shrink it, and take the center color as the "hold color"
+2. From the center, follow and spread over pixels of the same color. Saturated holds are compared by hue;
+   white/black/gray holds by brightness
+   (brightness changes with lighting but hue barely does. Wall shadows and edges are hard to pick up)
+3. Fill holes inside the blob (shiny spots etc.), trace the edge, reduce points, and convert to photo fractions
+4. When the blob spills far over the crop edge, it connects to the wall's own color, so drop it
 """
 import colorsys
 import math
 from collections import deque
 
-WORK = 96  # 切り出した絵の長い辺(画素)
+WORK = 96  # long side of the cropped image (pixels)
 MAX_POINTS = 32
-SCAN = 640  # 同じ色のホールドを探すときの、写真の長い辺(画素。小さなホールドも拾えるように)
+SCAN = 640  # long side of the photo when finding same-color holds (pixels; keeps small holds catchable)
 MAX_EXTRA = 40
-MIN_BLOB = 6  # 見落としとして足す、かたまりの小ささの下限(探す写真の画素)
-BLOB_HUE = 0.035  # かたまり全体の色合いの、押したホールドとの違いの上限
+MIN_BLOB = 6  # minimum blob size added as a missed hold (pixels of the search image)
+BLOB_HUE = 0.035  # upper bound of the whole blob's hue gap from the tapped hold
 
 
 def _hsv(rgb):
@@ -29,14 +30,14 @@ def _hue_gap(a, b):
 
 
 def colored(c):
-    """色の濃いホールドか(白・黒・灰色ではない)。"""
+    """Whether it is a saturated hold (not white, black or gray)."""
     return c[1] >= 0.28 and c[2] >= 0.15
 
 
 def same(c, seed):
-    """画素 c が、ホールドの色 seed と同じに見えるか。"""
+    """Whether pixel c looks the same as the hold color seed."""
     if colored(seed):
-        # 光が当たって白っぽく見える所も拾えるよう、鮮やかさは控えめに比べる。暗い所(影・天井の梁)は外す
+        # Compare saturation loosely so washed-out highlights are still caught. Leave out dark spots (shadows, ceiling beams)
         return (_hue_gap(c[0], seed[0]) < 0.05 and c[1] >= max(0.2, seed[1] * 0.4)
                 and c[2] >= max(0.12, seed[2] * 0.55))
     return c[1] < 0.25 and abs(c[2] - seed[2]) < 0.12
@@ -45,7 +46,7 @@ def same(c, seed):
 def _mean(colors):
     if not colors:
         return (0, 0, 0)
-    # 色相は角度なので、そのまま足さず、向きを足して平均する
+    # Hue is an angle, so average directions instead of adding values
     x = sum(math.cos(c[0] * 2 * math.pi) * c[1] for c in colors)
     y = sum(math.sin(c[0] * 2 * math.pi) * c[1] for c in colors)
     h = (math.atan2(y, x) / (2 * math.pi)) % 1
@@ -53,7 +54,7 @@ def _mean(colors):
 
 
 def _trace(mask, w, h):
-    """かたまりのふちを、時計回りになぞる(ムーアの近傍をたどるやり方)。"""
+    """Trace a blob edge clockwise (Moore-neighborhood tracing)."""
     start = next(((x, y) for y in range(h) for x in range(w) if mask[y][x]), None)
     if not start:
         return []
@@ -75,7 +76,7 @@ def _trace(mask, w, h):
 
 
 def _simplify(points, tol):
-    """点を減らす(ダグラス・ポイカー)。輪郭は閉じているので、いちばん遠い2点で分けてから減らす。"""
+    """Reduce points (Douglas-Peucker). The outline is closed, so split at the two farthest points first."""
     def rdp(pts):
         if len(pts) < 3:
             return pts
@@ -97,7 +98,7 @@ def _simplify(points, tol):
 
 
 def _grow(hsv, w, h, sx, sy, seed):
-    """(sx, sy) から、seed と同じ色の画素をたどったかたまり。"""
+    """The blob of seed-colored pixels traced from (sx, sy)."""
     mask = [[False] * w for _ in range(h)]
     if not same(hsv[sy][sx], seed):
         return mask, 0
@@ -113,7 +114,7 @@ def _grow(hsv, w, h, sx, sy, seed):
 
 
 def _fill_holes(mask, w, h):
-    """かたまりの中の穴(光って白く見える所など)を埋める。ふちから届かない所が穴。"""
+    """Fill holes inside a blob (shiny white spots etc.). What the edge cannot reach is a hole."""
     outside = [[False] * w for _ in range(h)]
     q = deque((x, y) for y in range(h) for x in range(w) if (x in (0, w - 1) or y in (0, h - 1)) and not mask[y][x])
     for x, y in q:
@@ -128,8 +129,9 @@ def _fill_holes(mask, w, h):
 
 
 def shape_at(img, x, y, half, seed=None):
-    """(x, y)(割合)にあるホールドの輪郭(割合の点の並び)。half は切り出す四角の半分の幅(写真の幅に対する割合)。
-    seed を渡さなければ、押した所のまわりの色をホールドの色にする。見分けられなければ None。"""
+    """Outline (a run of fractional points) of the hold at (x, y) (fractions). half is the half-width of the crop
+    square (fraction of the photo width). Without a seed, the color around the tapped spot becomes the hold color.
+    None when untellable."""
     W, H = img.size
     hx, hy = half * W, half * W
     box = (max(0, int(x * W - hx)), max(0, int(y * H - hy)), min(W, int(x * W + hx) + 1), min(H, int(y * H + hy) + 1))
@@ -145,7 +147,7 @@ def shape_at(img, x, y, half, seed=None):
     near = [(hsv[j][i], i, j) for j in range(max(0, cy - 2), min(h, cy + 3)) for i in range(max(0, cx - 2), min(w, cx + 3))]
     if seed is None:
         seed = _mean([c for c, _, _ in near])
-    # たどり始めは、真ん中の近くで、いちばんホールドの色らしい画素
+    # Start tracing at the pixel nearest the center that looks most like the hold color
     start = next(((i, j) for c, i, j in sorted(near, key=lambda n: abs(n[1] - cx) + abs(n[2] - cy)) if same(c, seed)), None)
     if not start:
         return None
@@ -153,7 +155,7 @@ def shape_at(img, x, y, half, seed=None):
     if count < 6 or count > 0.6 * w * h:
         return None
     border = [mask[j][i] for j in range(h) for i in range(w) if i in (0, w - 1) or j in (0, h - 1)]
-    if sum(border) > 0.12 * len(border):  # 四角のふちに大きくはみ出す → 壁と同じ色につながっている
+    if sum(border) > 0.12 * len(border):  # spills far over the square edge → connects to the wall color
         return None
     mask = _fill_holes(mask, w, h)
     outline = _simplify(_trace(mask, w, h), tol=0.7)
@@ -167,7 +169,8 @@ def shape_at(img, x, y, half, seed=None):
 
 
 def refine(img, hold):
-    """AI の候補(割合の {"x", "y", "r", "points"?})の輪郭を、写真の色で直した点の並び。直せなければ None。"""
+    """Points of an AI candidate (fractional {"x", "y", "r", "points"?) with the outline fixed by photo color.
+    None when unfixable."""
     img = img.convert("RGB")
     size = hold["r"]
     if hold.get("points"):
@@ -177,7 +180,7 @@ def refine(img, hold):
 
 
 def refine_all(img, holds):
-    """候補すべての輪郭を、色で直せる物だけ直す(直せない物は AI の輪郭のまま)。"""
+    """Fix every candidate outline by color where fixable (keep the AI outline otherwise)."""
     img = img.convert("RGB")
     for hold in holds:
         better = refine(img, hold)
@@ -187,8 +190,8 @@ def refine_all(img, holds):
 
 
 def outline_at(img, point):
-    """押した所(割合)にあるホールドの輪郭。ホールドの大きさが分からないので、小さい四角から順に試し、
-    ふちにはみ出さずに見分けられた最初の形を使う。見分けられなければ None。"""
+    """Outline of the hold at the tapped spot (fractions). The hold size is unknown, so try small squares first and
+    use the first shape told apart without spilling over the edge. None when untellable."""
     img = img.convert("RGB")
     for half in (0.04, 0.08, 0.14):
         pts = shape_at(img, point["x"], point["y"], half)
@@ -207,20 +210,20 @@ def _inside(x, y, pts):
 
 
 def _covers(hold, x, y, W, H):
-    """(x, y)(割合)が、その候補の中か。"""
+    """Whether (x, y) (fractions) is inside that candidate."""
     if hold.get("points"):
         return _inside(x, y, hold["points"])
     return ((hold["x"] - x) * W) ** 2 + ((hold["y"] - y) * H) ** 2 <= (hold["r"] * W) ** 2
 
 
-CHAIN_ROUNDS = 6  # 見つけたホールドのまわりを、さらに探す回数(課題は、ホールドが鎖のようにつながって続くため)
-LINK = 0.25  # 見つけたホールドから、この距離(写真の長い辺に対する割合)までのかたまりは、同じ課題として足す
+CHAIN_ROUNDS = 6  # rounds of searching around found holds (a problem continues like a chained run of holds)
+LINK = 0.25  # blobs within this distance (fraction of the photo's long side) of a found hold join the same problem
 PALE_GAP = 0.3
-SMALL_PART = 12  # 押したホールドの大きさ(画素の数)の、この分の1より小さいかたまりは拾わない  # 白・黒・灰色のホールドを探すときの、壁との明るさの違いの下限
+SMALL_PART = 12  # blobs smaller than 1/12 of the tapped hold's pixel count are skipped  # lower bound of the brightness gap from the wall when finding white/black/gray holds
 
 
 def _wall_color(hsv):
-    """写真のいちばん多い色(壁)の、鮮やかさと明るさのまん中の値。"""
+    """Median saturation and value of the most common color (the wall) in the photo."""
     flat = [c for row in hsv[::4] for c in row[::4]]
     s = sorted(c[1] for c in flat)
     v = sorted(c[2] for c in flat)
@@ -228,26 +231,27 @@ def _wall_color(hsv):
 
 
 def pale_ok(color, wall):
-    """白・黒・灰色のホールドを、壁と見分けて探してよいか(壁と明るさが十分ちがうときだけ)。"""
+    """Whether white/black/gray holds may be told apart from the wall (only when brightness differs enough)."""
     return abs(color[2] - wall[1]) >= PALE_GAP
 
 
 def extend_by_color(img, holds, point, everywhere=False):
-    """押したホールドと同じ色のかたまりを、写真の中から探して足す(AI が見落とした物を拾う)。
-    探すのは、見つかった候補のまわり(候補全体を囲む四角を広げた所)だけ。足した物のまわりも、また探す
-    (課題はホールドが続いているので、押した所から鎖のようにたどる)。everywhere なら写真全体
-    (エージェントの道具。となりの壁の物も混ざるが、選ぶのはエージェント)。
-    白・黒・灰色のように色の薄いホールドは、壁と明るさが十分ちがうときだけ、明るさで探す(白い壁の白は探さない)。"""
+    """Find blobs of the tapped hold's color in the photo and add them (pick up what the AI missed).
+    Only around found candidates (the bounding box of all candidates, widened). Around added holds too, again
+    (problems run on, so trace them like a chain from the tap). everywhere means the whole photo
+    (an agent tool. Other walls mix in, but the agent chooses).
+    Pale holds like white/black/gray are found by brightness only when far enough from the wall
+    (no white on a white wall)."""
     img = img.convert("RGB")
     W, H = img.size
     seed_hold = next((h for h in holds if _covers(h, point["x"], point["y"], W, H)), None)
-    if seed_hold is None:  # AI の候補が押した所から少しずれていても、押した所の色で探す
+    if seed_hold is None:  # even when the AI candidate is slightly off the tap, search by the tap's color
         pts = outline_at(img, point)
         if not pts:
             return holds
         seed_hold = {"x": point["x"], "y": point["y"], "r": 0.01, "points": pts,
                      "color": next((h.get("color", "") for h in holds), "")}
-        holds = holds + [seed_hold]  # 押したホールド自身も、課題のホールドに入れる
+        holds = holds + [seed_hold]  # the tapped hold itself also joins the problem holds
     scale = SCAN / max(W, H)
     w, h = max(8, int(W * scale)), max(8, int(H * scale))
     px = img.resize((w, h)).load()
@@ -255,19 +259,19 @@ def extend_by_color(img, holds, point, everywhere=False):
     inside = [hsv[y][x] for y in range(h) for x in range(w) if _covers(seed_hold, (x + 0.5) / w, (y + 0.5) / h, W, H)]
     if len(inside) < 3:
         return holds
-    # 押したホールドよりずっと小さな点(テープの切れ端・ネジ・汚れ)は拾わない。本物の写真で、壁じゅうの赤い点を拾った
+    # Skip dots far smaller than the tapped hold (tape scraps, screws, dirt). A real photo picked up red dots all over the wall
     min_blob = max(MIN_BLOB, len(inside) // SMALL_PART)
-    # 押したホールドの色(輪郭の中の、色の濃い半分の平均。輪郭が少しはみ出して壁の画素が混ざっても大丈夫なように)
+    # The tapped hold's color (mean of the saturated half inside the outline, so mixed-in wall pixels from a loose outline are fine)
     inside.sort(key=lambda c: c[1], reverse=True)
     color = _mean(inside[:max(3, len(inside) // 2)])
     if not colored(color):
-        # 白・黒・灰色:輪郭の中の、壁から遠い半分の平均の明るさ
+        # White/black/gray: brightness of the mean of the half farthest from the wall
         wall = _wall_color(hsv)
         inside.sort(key=lambda c: abs(c[2] - wall[1]), reverse=True)
         color = _mean(inside[:max(3, len(inside) // 2)])
         if colored(color) or not pale_ok(color, wall):
             return holds
-        min_blob = max(MIN_BLOB, len(inside) // 6)  # ボルトの穴やホールドの影の小さな点を拾わないように
+        min_blob = max(MIN_BLOB, len(inside) // 6)  # skip tiny dots of bolt holes and hold shadows
     near = [[same(hsv[y][x], color) for x in range(w)] for y in range(h)]
     seen = [[False] * w for _ in range(h)]
     blobs = []
@@ -284,9 +288,9 @@ def extend_by_color(img, holds, point, everywhere=False):
                     if 0 <= nx < w and 0 <= ny < h and near[ny][nx] and not seen[ny][nx]:
                         seen[ny][nx] = True
                         q.append((nx, ny))
-            if not (min_blob <= len(blob) <= 0.03 * w * h):  # 小さすぎる点・大きすぎる面は、ホールドではない
+            if not (min_blob <= len(blob) <= 0.03 * w * h):  # too-small dots and too-large faces are not holds
                 continue
-            # 画素ごとには色合いを広めに見ているので、かたまり全体の色合いでもう一度比べる(赤とオレンジを分ける)
+            # Hue is judged loosely per pixel, so compare the whole blob's hue once more (tell red from orange apart)
             if colored(color) and _hue_gap(_mean([hsv[y][x] for x, y in blob])[0], color[0]) >= BLOB_HUE:
                 continue
             bx = [p[0] for p in blob]
@@ -298,12 +302,12 @@ def extend_by_color(img, holds, point, everywhere=False):
     for round_ in range(1 if everywhere else CHAIN_ROUNDS):
         xs = [hh["x"] for hh in holds + extra]
         ys = [hh["y"] for hh in holds + extra]
-        # 候補全体を囲む四角を、幅・高さの4分の1ずつ広げる(候補が少ないときも、写真の 15% は見る。
-        # 広げすぎると、となりの壁のほかの課題まで拾うため)
-        # 四角の外でも、見つけたホールドのどれかに近ければ足す(課題は、ホールドが続いて上へ登るため)
+        # Widen the bounding box of all candidates by a quarter of its width/height (see at least 15% of the photo
+        # even with few candidates. Widening too far picks up other problems on the next wall)
+        # Outside the box, still add blobs near any found hold (problems climb up as a run of holds)
         px_, py_ = max((max(xs) - min(xs)) / 4, 0.15), max((max(ys) - min(ys)) / 4, 0.15)
         area = (0, 0, 1, 1) if everywhere else (min(xs) - px_, min(ys) - py_, max(xs) + px_, max(ys) + py_)
-        if round_:  # 2回目からは、見つけたホールドの近くだけ(四角は、ホールドが増えるほど広がって、壁じゅうを拾うため)
+        if round_:  # from the second round, only near found holds (the box widens as holds grow and would pick up the whole wall)
             area = (2, 2, 2, 2)
         side = max(W, H)
         added = 0
