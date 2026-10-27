@@ -63,15 +63,36 @@ MODEL_API_KEY=... .venv/bin/python -m topo_agent.eval --bench --methods color,sa
 - `topo_agent/eval.py` scoring semantics (recall/precision/match rules) are the shared contract with the app repo;
   changing them needs explicit user approval.
 
+## Team workflow (Mirai-Climbing/topo-agent)
+
+We collaborate directly on the upstream repo (write access). Work on feature branches there and open PRs
+into `main`; never push to `main` (it is protected).
+
+- Small, focused PRs, one change each. Merge with merge commits (no squash): the history shows what was
+  built during the hackathon.
+- Every PR must pass `python -m unittest discover -s tests -t .` and `pyflakes` (install it if missing).
+- Behavior changes must include bench results: `python -m topo_agent.eval --bench --methods sam_color,meta --seeds 11,12`.
+- Use your own `MODEL_API_KEY` from hackathon credits; never commit keys.
+- English for everything (code, comments, docs, commits). Do not touch `README.ja.md` (a teammate maintains it).
+
+## Priorities (hackathon deadline: Nov 4, 9pm ET)
+
+a. Real-photo evaluation: a photo + JSON format (tapped hold, correct holds) and an eval mode to score it;
+   then test with gym photos. Numbers are only on drawn walls right now, so this matters most.
+b. Recovering holds that SAM misses (e.g. washed-out holds in strong light).
+c. Latency: about 7.6 s per photo now (SAM ~2 s, Muse Spark ~5 s).
+
 ## Upstream tracking
 
-The original project is https://github.com/Mirai-Climbing/topo-agent. This clone's `origin` is a personal
-fork, so from time to time (at the start of a non-trivial task, or before touching files shared with upstream):
+Day-to-day work happens on feature branches in https://github.com/Mirai-Climbing/topo-agent (see Team
+workflow). This clone's `origin` is a personal fork kept as backup. From time to time (at the start of
+a non-trivial task, or before touching files shared with upstream):
 
 - Make sure a remote points at the original (`git remote -v`; add it once with
   `git remote add upstream https://github.com/Mirai-Climbing/topo-agent.git` if missing), then
   `git fetch upstream` and compare (`git log HEAD..upstream/main --oneline`, `git diff HEAD upstream/main --stat`).
-- If upstream moved, tell the user what changed and ask before merging or rebasing. Never push to upstream.
+- If upstream moved, tell the user what changed and ask before merging or rebasing. Push only feature
+  branches to upstream, for PRs; never push to upstream `main`.
 - Keep the `pre-hackathon` tag and `topo_agent/baseline/` semantics aligned with upstream; do not invent divergences.
 
 ## File map
