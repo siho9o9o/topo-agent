@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>topo-agent</title>
+<style>
+  :root { --line: #e2e2e2; --ink: #232323; --muted: #666; --accent: #1d4ed8; --ok: #15803d; --bad: #b91c1c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: #fff; }
+  header { border-bottom: 1px solid var(--line); padding: 10px 18px; display: flex; align-items: baseline; gap: 12px; }
+  header h1 { margin: 0; font-size: 19px; font-weight: 650; }
+  header p { margin: 0; font-size: 13px; color: var(--muted); }
+  main { display: flex; flex-wrap: wrap; gap: 16px; padding: 16px 18px; max-width: 1280px; }
+  #stage { flex: 1 1 560px; min-width: 300px; }
+  #panel { flex: 0 1 300px; display: flex; flex-direction: column; gap: 14px; }
+  section { border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; }
+  section h2 { margin: 0 0 8px; font-size: 13px; font-weight: 650; color: var(--muted); }
+  #canvas { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px;
+            background: #f0f0f0; cursor: crosshair; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  button, select { font: inherit; font-size: 14px; padding: 7px 12px; border-radius: 6px; border: 1px solid #c9c9c9;
+                   background: #fff; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; width: 100%; }
+  button:disabled { opacity: 0.45; cursor: default; }
+  label.method { display: flex; gap: 8px; align-items: baseline; padding: 5px 0; font-size: 14px; cursor: pointer; }
+  label.method.off { color: #999; cursor: default; }
+  label.method small { color: #999; font-size: 12px; }
+  #tap { font-size: 14px; }
+  #result { font-size: 14px; min-height: 20px; }
+  #result.ok { color: var(--ok); } #result.bad { color: var(--bad); }
+  .hint { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+  input[type="checkbox"] { accent-color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>topo-agent</h1>
+  <p>Open a photo, tap one hold, run a method.</p>
+</header>
+<main>
+  <div id="stage"><canvas id="canvas" width="880" height="600"></canvas></div>
+  <div id="panel">
+    <section>
+      <h2>Photo</h2>
+      <div class="row">
+        <button id="uploadBtn" type="button">Upload</button>
+        <input id="file" type="file" accept="image/*" hidden>
+        <select id="scene"></select>
+        <button id="sampleBtn" type="button">Sample</button>
+      </div>
+      <p class="hint">Samples are drawn walls with known answers; uploads are your own photos.</p>
+    </section>
+    <section>
+      <h2>Tap</h2>
+      <div id="tap">No photo yet.</div>
+    </section>
+    <section>
+      <h2>Method</h2>
+      <div id="methods"></div>
+    </section>
+    <section>
+      <h2>Run</h2>
+      <div class="row"><label><input id="truth" type="checkbox"> Show answer (samples only)</label></div>
+      <p></p>
+      <button id="run" class="primary" type="button" disabled>Find holds</button>
+      <p></p>
+      <div id="result"></div>
+    </section>
+  </div>
+</main>
+<script>
+"use strict";
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const state = { img: null, jpeg: null, tap: null, truth: null, found: [], methods: {} };
+
+function draw() {
+  ctx.fillStyle = "#f0f0f0";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#999";
+  ctx.font = "14px system-ui, sans-serif";
+  if (!state.img) { ctx.fillText("Upload a photo or load a sample.", 20, 30); return; }
+  ctx.drawImage(state.img, 0, 0, canvas.width, canvas.height);
+  const poly = (pts, close) => {
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => i ? ctx.lineTo(x * canvas.width, y * canvas.height)
+                                 : ctx.moveTo(x * canvas.width, y * canvas.height));
+    if (close) ctx.closePath();
+  };
+  if (document.getElementById("truth").checked && state.truth)
+    for (const t of state.truth) { poly(t.points, true); ctx.setLineDash([6, 4]);
+      ctx.lineWidth = 2; ctx.strokeStyle = "#1d4ed8"; ctx.stroke(); ctx.setLineDash([]); }
+  state.found.forEach((h, i) => {
+    if (h.points && h.points.length >= 3) { poly(h.points, true); }
+    else { ctx.beginPath(); ctx.arc(h.x * canvas.width, h.y * canvas.height,
+           Math.max(h.r * canvas.width, 6), 0, 7); }
+    ctx.lineWidth = 2; ctx.strokeStyle = "#15803d"; ctx.stroke();
+    ctx.fillStyle = "#15803d"; ctx.font = "bold 13px system-ui, sans-serif";
+    ctx.fillText(String(i + 1), h.x * canvas.width + 5, h.y * canvas.height - 5);
+  });
+  if (state.tap) {
+    const x = state.tap.x * canvas.width, y = state.tap.y * canvas.height;
+    ctx.lineWidth = 2; ctx.strokeStyle = "#dc2626";
+    ctx.beginPath(); ctx.arc(x, y, 9, 0, 7); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x - 14, y); ctx.lineTo(x + 14, y);
+    ctx.moveTo(x, y - 14); ctx.lineTo(x, y + 14); ctx.stroke();
+  }
+}
+
+function setTap(t) {
+  state.tap = t; state.found = [];
+  document.getElementById("tap").textContent = t
+    ? `Tapped at x=${Math.round(t.x * 1000)}, y=${Math.round(t.y * 1000)} (click the photo to move it)`
+    : "Click the photo to tap a hold.";
+  document.getElementById("run").disabled = !t;
+  setResult("", "");
+  draw();
+}
+
+function setResult(text, cls) {
+  const el = document.getElementById("result");
+  el.textContent = text; el.className = cls;
+}
+
+function fitCanvas(img) {
+  const s = Math.min(1, 880 / img.naturalWidth, 640 / img.naturalHeight);
+  canvas.width = Math.max(1, Math.round(img.naturalWidth * s));
+  canvas.height = Math.max(1, Math.round(img.naturalHeight * s));
+}
+
+function usePhoto(jpeg, truth, tap) {
+  const img = new Image();
+  img.onload = () => { state.img = img; state.jpeg = jpeg; state.truth = truth || null; setTap(tap || null); };
+  img.src = jpeg;
+}
+
+canvas.addEventListener("click", (e) => {
+  if (!state.img) return;
+  const r = canvas.getBoundingClientRect();
+  setTap({ x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height });
+});
+
+document.getElementById("truth").addEventListener("change", draw);
+document.getElementById("uploadBtn").addEventListener("click", () => document.getElementById("file").click());
+document.getElementById("file").addEventListener("change", (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => usePhoto(r.result, null, null);
+  r.readAsDataURL(f);
+  e.target.value = "";
+});
+document.getElementById("sampleBtn").addEventListener("click", async () => {
+  const name = document.getElementById("scene").value;
+  setResult("Loading sample…", "");
+  try {
+    const s = await (await fetch(`/api/scene?name=${encodeURIComponent(name)}&seed=11`)).json();
+    if (!s.jpeg) throw new Error(s.error || "no photo");
+    document.getElementById("truth").checked = false;
+    usePhoto(s.jpeg, s.truth, s.tap);
+    setResult("", "");
+  } catch (err) { setResult("Sample failed: " + err.message, "bad"); }
+});
+document.getElementById("run").addEventListener("click", async () => {
+  const method = document.querySelector('input[name="method"]:checked');
+  if (!method || !state.tap) return;
+  const btn = document.getElementById("run");
+  btn.disabled = true;
+  const t0 = Date.now();
+  const tick = setInterval(() => setResult(`Running ${method.value}… ${((Date.now() - t0) / 1000).toFixed(0)}s`, ""), 250);
+  try {
+    const res = await (await fetch("/api/find", { method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jpeg: state.jpeg, x: state.tap.x, y: state.tap.y, method: method.value }) })).json();
+    if (res.error) { state.found = []; setResult(res.error, "bad"); }
+    else { state.found = res.holds || []; setResult(`${state.found.length} hold(s) · ${res.seconds}s`, "ok"); }
+  } catch (err) { setResult("Request failed: " + err.message, "bad"); }
+  finally { clearInterval(tick); btn.disabled = false; draw(); }
+});
+
+(async function init() {
+  draw();
+  try {
+    const st = await (await fetch("/api/status")).json();
+    const box = document.getElementById("methods");
+    box.innerHTML = "";
+    for (const [name, m] of Object.entries(st.methods)) {
+      const lab = document.createElement("label");
+      lab.className = "method" + (m.ok ? "" : " off");
+      lab.innerHTML = `<input type="radio" name="method" value="${name}"${m.ok ? "" : " disabled"}>` +
+        `<span>${name}${m.ok ? "" : ` <small>${m.reason}</small>`}</span>`;
+      box.appendChild(lab);
+    }
+    const first = box.querySelector("input:not([disabled])");
+    if (first) first.checked = true;
+    const sel = document.getElementById("scene");
+    for (const n of st.scenes) { const o = document.createElement("option"); o.value = o.textContent = n; sel.appendChild(o); }
+    sel.value = "similar";
+    document.getElementById("tap").textContent = "Upload a photo or load a sample, then click a hold.";
+  } catch (err) { setResult("Server unreachable: " + err.message, "bad"); }
+})();
+</script>
+</body>
+</html>
