@@ -117,3 +117,37 @@ Same run, team 6-turn code, one run per method. Traces and raw replies saved und
 `meta3` misses: tape-11 (1/7), tape-12 (1/7), volume-11 (2/7), busy-11 (5/7); all
 other scenes 7/7. Stage means: SAM 1.5 s, CV colors 0.4 s, Spark 10.3 s.
 Analysis in [learnings.md](learnings.md).
+
+## 2026-10-28: Tap-only meta3 re-run (equal criteria, same session)
+
+v1 asked for ALL routes (unfair task vs the agent's tap-only question, temperature 0,
+no tap close-up). v2 fixes all three and re-runs both methods in one session.
+Outputs under `out/three-stage-v2/` (real) and `out/three-stage-synth-v2/`.
+
+Synth (18 problems):
+
+| Method | Recall | Precision | Mean s/photo |
+|---|---|---|---|
+| sam_color | 90% | 86% | 1.6 |
+| meta | 99% | 100% | 6.8 |
+| meta3 | 99% | 96% | 5.1 |
+
+`meta3` stages: SAM 1.5 s, CV 0.4 s, Spark 3.2 s (was 10.3 s). Tape 7/7 both.
+Only miss vs meta: twins-12 over-pick (12 found, 7 hits).
+
+Real (8 cases, same session):
+
+| Case | meta truth/found/hits/s | meta3 truth/found/hits/s |
+|---|---|---|
+| bh0003_r1 | 3/4/2/25.4 | 3/3/1/8.7 |
+| bh0074_r13 | 20/9/3/17.8 | 20/3/3/5.6 |
+| bh0075_r1 | 12/10/10/25.2 | 12/5/5/7.3 |
+| bh0457_r1 | 18/14/14/23.3 | 18/16/5/14.9 |
+| bh0502_r4 | 15/8/7/31.9 | 15/20/5/14.9 |
+| bh0518_r3 | 8/9/8/40.6 | 8/33/5/11.3 |
+| bh0530_r3 | 16/7/7/28.6 | 16/9/9/12.6 |
+| bh0917_r7 | 12/12/11/36.4 | 12/12/9/13.6 |
+| TOTAL | recall 60%, precision 85%, mean 28.6 s | recall 40%, precision 42%, mean 11.1 s |
+
+`meta3` stages: SAM 2.9 s, CV 0.4 s, Spark 7.8 s (was 15.2 s), zero fallbacks.
+Note the baseline wobble: same code scored 49%/85%/33.3 s last session.

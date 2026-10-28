@@ -107,3 +107,23 @@ cheaper than whole-wall grouping at ~10.3 s). Real photos: `meta3` 18.4 s vs
 `meta` 33.3 s (the agent needs 4-6 turns there).
 Implication: pick the path by expected difficulty, or narrow the single-pass
 question to the tapped route so it wins everywhere.
+
+## Tap-only fixes synth single-pass completely
+
+Narrowing v2 to the tapped route (+ tap close-up, temperature 0.2) moved synth
+`meta3` from 85%/96%/12.2 s to 99%/96%/5.1 s: tape 7/7 both, Spark 10.3 s to
+3.2 s, now faster than the agent's 6.8 s.
+Implication: the v1 gap was task scope, not architecture; fair criteria first.
+
+## "When in doubt, include" over-picks real pale walls
+
+Real v2 `meta3` precision fell to 42% (0518: 33 found vs 8 truth; 0502: 20 vs 15)
+while recall stayed 40%: the agent's inclusion bias plus no zoom verification
+hurts where colors are pale and fragmented.
+Implication: single-pass needs stricter inclusion (or a verify step) for real light.
+
+## Real-photo baseline wobbles across sessions
+
+Same 6-turn code on the same 8 cases: 49%/85%/33.3 s vs 60%/85%/28.6 s
+(0457: 7 to 14 hits; 0518: 5 to 8). Temperature 0.2, single runs.
+Implication: compare methods within one session; treat small gaps as noise.
