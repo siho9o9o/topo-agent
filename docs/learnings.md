@@ -127,3 +127,11 @@ Implication: single-pass needs stricter inclusion (or a verify step) for real li
 Same 6-turn code on the same 8 cases: 49%/85%/33.3 s vs 60%/85%/28.6 s
 (0457: 7 to 14 hits; 0518: 5 to 8). Temperature 0.2, single runs.
 Implication: compare methods within one session; treat small gaps as noise.
+
+## Pretrained embeddings beat HSV for same-route similarity
+
+DINOv2 ViT-S/14 crop embeddings reach 74% leave-one-out same-route retrieval on
+587 GT holds vs 60% for HSV color distance, with the biggest gain on the hardest
+wall (0074: 44% to 72%). Masked crops beat plain bbox slightly.
+Implication: replace/augment the CV color-grouping signal with embedding similarity;
+needs a torch dependency decision before merging to the repo.

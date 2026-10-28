@@ -151,3 +151,25 @@ Real (8 cases, same session):
 
 `meta3` stages: SAM 2.9 s, CV 0.4 s, Spark 7.8 s (was 15.2 s), zero fallbacks.
 Note the baseline wobble: same code scored 49%/85%/33.3 s last session.
+
+## 2026-10-28: DINOv2 hold embeddings vs HSV (local retrieval, no API)
+
+Leave-one-hold-out nearest neighbor: is the closest other hold on the same image
+from the same route? GT holds of all 68 routes (587 holds), DINOv2 ViT-S/14
+pretrained weights, cosine on crops vs HSV color_distance. Script `/tmp/emb_eval.py`,
+results `out/embed-proto/retrieval.json`.
+
+| Image | Holds/routes | HSV | DINO masked | DINO bbox |
+|---|---|---|---|---|
+| bh0003 | 6/2 | 100% | 83% | 67% |
+| bh0074 | 217/17 | 44% | 72% | 69% |
+| bh0075 | 58/8 | 83% | 90% | 90% |
+| bh0457 | 72/7 | 60% | 76% | 68% |
+| bh0502 | 68/11 | 69% | 69% | 68% |
+| bh0518 | 43/8 | 60% | 60% | 56% |
+| bh0530 | 52/5 | 81% | 81% | 83% |
+| bh0917 | 71/10 | 65% | 70% | 77% |
+| TOTAL | 587/68 | 60% | 74% | 72% |
+
+Masked crops (background blacked out) beat bbox slightly overall. torch 2.14+cu126
+installed in project `.venv` (local GPU RTX 3080 Ti); not yet a repo dependency.
