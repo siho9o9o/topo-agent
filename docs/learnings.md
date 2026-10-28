@@ -68,3 +68,26 @@ carry routes (68 photo-route cases). Some frames are misaligned (bh-phone/182) o
 floor shots. License CC-BY-SA-4.0: eval use with attribution, no redistribution.
 Implication: curate before scoring; same-color routes only, so tape/cross-wall cases still
 need hand-annotated gym photos.
+
+## Single-pass grouping is faster but blind without zoom
+
+`meta3` (one Spark call over precomputed colors) cut real-photo latency 33.3 s to
+18.4 s with zero fallbacks, but recall fell 49% to 38% and precision 85% to 62%.
+Real-light color names fragment routes (a tap can be the only `white` hold on its
+wall; dark greens split into `green`/`gray`), Spark answers cautiously (23
+unassigned on 0530), and there is no `look_closer` to recover.
+Implication: keep a verification step for uncertain holds; ask for the tapped route
+only instead of all routes to cut reasoning (1.6k-4.8k tokens per call now).
+
+## All-routes output keeps single-pass slow
+
+One `meta3` call still averages 15.2 s because grouping the whole wall (up to 110
+candidates, 11.5k prompt tokens) forces global reasoning even at `effort: low`.
+Implication: latency scales with task scope, not just turn count; narrow the question.
+
+## Union-find color groups chain across distinct colors
+
+Pairwise-threshold grouping merged 54 holds on 0530 into 2 groups (orange/yellow/red
+chained through intermediate shades). Spark split them back into routes, but the CV
+fallback (tap's group) would be near-useless there.
+Implication: group by distance to the tap (star) or cap chain length for fallback use.

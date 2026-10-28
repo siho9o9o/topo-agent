@@ -78,3 +78,27 @@ Color- and tape-qualified concept prompts on a real gym photo (assets/119720094.
 
 Color adjectives ground well enough for hints; tape needs the longer phrase plus
 color+adjacency filtering. Detail in [learnings.md](learnings.md).
+
+## 2026-10-28: Three-stage pipeline (meta3) vs ReAct agent (meta)
+
+Same 8 Kaggle route cases, one run each. `meta` numbers from the earlier run (team
+6-turn code); `meta3` = SAM + CV color grouping + single-pass Spark (`feat/three-stage`).
+Per-case traces, prompts, raw Spark replies and found holds saved under `out/three-stage/`.
+
+| Case | meta truth/found/hits/s | meta3 truth/found/hits/s |
+|---|---|---|
+| bh0003_r1 | 3/3/1/23.6 | 3/2/1/12.5 |
+| bh0074_r13 | 20/9/3/39.0 | 20/3/3/13.6 |
+| bh0075_r1 | 12/10/10/32.9 | 12/10/10/21.3 |
+| bh0457_r1 | 18/7/7/33.2 | 18/5/4/29.4 |
+| bh0502_r4 | 15/8/7/36.7 | 15/5/2/21.1 |
+| bh0518_r3 | 8/5/5/34.6 | 8/16/4/13.3 |
+| bh0530_r3 | 16/7/7/29.3 | 16/4/3/18.1 |
+| bh0917_r7 | 12/11/11/36.8 | 12/18/12/18.2 |
+| TOTAL | recall 49%, precision 85%, mean 33.3 s | recall 38%, precision 62%, mean 18.4 s |
+
+`meta3` stage means: SAM 2.8 s (3 calls), CV colors 0.4 s, Spark 15.2 s (1 call),
+post ~0 s. Spark prompts 3.3k-11.5k tokens (110 candidates on 0074), completions
+1.7k-5.3k tokens, mostly reasoning (1.6k-4.8k) despite `reasoning_effort: low`.
+Zero fallbacks: all 8 replies were valid JSON holding the tapped route.
+Analysis in [learnings.md](learnings.md).
