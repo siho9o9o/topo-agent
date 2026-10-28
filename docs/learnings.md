@@ -91,3 +91,19 @@ Pairwise-threshold grouping merged 54 holds on 0530 into 2 groups (orange/yellow
 chained through intermediate shades). Spark split them back into routes, but the CV
 fallback (tap's group) would be near-useless there.
 Implication: group by distance to the tap (star) or cap chain length for fallback use.
+
+## Tape needs zoom; single full-wall view groups by color
+
+On synth tape scenes `meta3` scored 1/7 and 1/7: Spark grouped the wall into
+same-color routes and never saw the tape strips. The ReAct agent solves tape via
+the tap close-up plus `look_closer` crops.
+Implication: any single-pass path needs a tap close-up (and ideally tape-oriented
+crops) in its one request, or it must route tape-like cases back to the agent.
+
+## Single-pass only wins where the agent needs many turns
+
+Synth: `meta3` 12.2 s vs `meta` 6.5 s (the agent answers clear walls in one turn,
+cheaper than whole-wall grouping at ~10.3 s). Real photos: `meta3` 18.4 s vs
+`meta` 33.3 s (the agent needs 4-6 turns there).
+Implication: pick the path by expected difficulty, or narrow the single-pass
+question to the tapped route so it wins everywhere.

@@ -102,3 +102,18 @@ post ~0 s. Spark prompts 3.3k-11.5k tokens (110 candidates on 0074), completions
 1.7k-5.3k tokens, mostly reasoning (1.6k-4.8k) despite `reasoning_effort: low`.
 Zero fallbacks: all 8 replies were valid JSON holding the tapped route.
 Analysis in [learnings.md](learnings.md).
+
+## 2026-10-28: Synth bench with meta3 (9 scenes x seeds 11, 12)
+
+Same run, team 6-turn code, one run per method. Traces and raw replies saved under
+`out/three-stage-synth/`.
+
+| Method | Recall | Precision | Mean s/photo |
+|---|---|---|---|
+| sam_color | 90% | 86% | 1.5 |
+| meta | 99% | 100% | 6.5 |
+| meta3 | 85% | 96% | 12.2 |
+
+`meta3` misses: tape-11 (1/7), tape-12 (1/7), volume-11 (2/7), busy-11 (5/7); all
+other scenes 7/7. Stage means: SAM 1.5 s, CV colors 0.4 s, Spark 10.3 s.
+Analysis in [learnings.md](learnings.md).
