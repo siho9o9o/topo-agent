@@ -45,6 +45,8 @@ MODEL_API_KEY=... .venv/bin/python -m topo_agent.eval --bench --methods color,sa
 
 - `eval.py --bench` uses code-drawn sample walls, which may be sent to external AI APIs.
 - Tuning history lives in [docs/experiments.md](docs/experiments.md); check it before re-trying an optimization.
+- After every experiment, write it up in the same session: numbers in `docs/experiments.md`, knowledge in
+  `docs/learnings.md`. Never leave results only in chat or /tmp.
 - Real gym photos may only be sent to external APIs with the photographer's consent.
 - API requests must use `store: false` and must not include names or user data.
 - Every API run must persist all model outputs (traces, found holds, raw replies) to `out/` or the task
