@@ -44,3 +44,37 @@ Rejected: less detail means more turns (tape: base 2 turns + 1 `look_closer` vs 
 3 `look_closer`, the third refused by `MAX_LOOKS`), so the run gets slower, not faster, and
 low answers wobble between runs (6 vs 8 holds on tape). Payload bytes were measured without
 API calls; bench numbers above used the real APIs.
+
+## 2026-10-28: Real-photo subset bench (meta)
+
+First real-photo scores: 8 Kaggle route cases (largest route per image), `--photos` mode,
+team code (6-turn cap):
+
+| Case | Truth | Found | Hits | Seconds |
+|---|---|---|---|---|
+| bh0003_r1 | 3 | 3 | 1 | 23.6 |
+| bh0074_r13 | 20 | 9 | 3 | 39.0 |
+| bh0075_r1 | 12 | 10 | 10 | 32.9 |
+| bh0457_r1 | 18 | 7 | 7 | 33.2 |
+| bh0502_r4 | 15 | 8 | 7 | 36.7 |
+| bh0518_r3 | 8 | 5 | 5 | 34.6 |
+| bh0530_r3 | 16 | 7 | 7 | 29.3 |
+| bh0917_r7 | 12 | 11 | 11 | 36.8 |
+| TOTAL | 104 | 60 | 51 | mean 33.3, recall 49%, precision 85% |
+
+Re-runs wobble (0457: 7 → 14 hits; 0917: 11 → 9). All 8 traces saved with the overlays;
+analysis in [learnings.md](learnings.md).
+
+## 2026-10-28: SAM phrase grounding
+
+Color- and tape-qualified concept prompts on a real gym photo (assets/119720094.2.jpg):
+
+| Prompt | Returned | Actually matching |
+|---|---|---|
+| `red climbing hold` | 16 | 15 red |
+| `yellow climbing hold` | 33 | 29 yellow (+4 orange) |
+| `tape` | 0 | — |
+| `colored tape strip` | 13 | mixed tape + bolt-hole lookalikes |
+
+Color adjectives ground well enough for hints; tape needs the longer phrase plus
+color+adjacency filtering. Detail in [learnings.md](learnings.md).

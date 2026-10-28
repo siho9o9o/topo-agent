@@ -24,15 +24,17 @@ compensated with more turns (2 → 4) and more zooms (1 → 3) on tape-11, and a
 
 ## The agent distrusts the candidate table
 
-Traces show every run opening with 6–12 `look_closer` crops and 13–17-id `inspect` batches
+Traces show every run opening with 6–12 `look_closer` crops and 13–20-id `inspect` batches
 to re-verify numbers the first message already carried, then submitting at the turn cap.
+Confirmed across all 8 subset traces: 7 open with `look_closer`, 4 submit on turn 6.
 Implication: exploration is the cost center. Precompute groupings deterministically and let the
 model verify instead of explore (the fuse-then-verify redesign).
 
 ## The agent under-picks on dense walls
 
-Real-photo bench: recall 49%, precision 85%. The 0530 trace says it outright:
-"excluded distant top/volume holds". Misses are decisions, not blindness.
+Real-photo bench: recall 49%, precision 85%, found ≤ truth in all 8 cases (worst 3/20 on the
+densest wall). The 0530 trace says it outright: "excluded distant top/volume holds".
+Misses are decisions, not blindness.
 Implication: recall work means changing the decision policy (completeness pressure,
 linked-chain handling), not better perception.
 
