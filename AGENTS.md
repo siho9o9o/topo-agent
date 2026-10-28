@@ -47,6 +47,8 @@ MODEL_API_KEY=... .venv/bin/python -m topo_agent.eval --bench --methods color,sa
 - Tuning history lives in [docs/experiments.md](docs/experiments.md); check it before re-trying an optimization.
 - Real gym photos may only be sent to external APIs with the photographer's consent.
 - API requests must use `store: false` and must not include names or user data.
+- Every API run must persist all model outputs (traces, found holds, raw replies) to `out/` or the task
+  dir. Never spend API twice because outputs were not saved.
 
 ## Conventions
 
