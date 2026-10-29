@@ -173,3 +173,26 @@ results `out/embed-proto/retrieval.json`.
 
 Masked crops (background blacked out) beat bbox slightly overall. torch 2.14+cu126
 installed in project `.venv` (local GPU RTX 3080 Ti); not yet a repo dependency.
+
+## 2026-10-29: Subagent optimization sprint on 8 real photos (v3 matrix)
+
+Three parallel subagents (own worktrees, merged to `feat/three-stage`): prompt
+variants v2/v3 (`META3_PROMPT`), DINOv2 embed hints (`META3_EMBED=1`), latency
+flags (`TOPO_SKIP_COVERED_POINT`, `TOPO_PRUNE_PROMPT`, payload knobs). 67 tests
++ pyflakes green. Same-session matrix, one run each, outputs `out/three-stage-v3/`:
+
+| Variant | Recall | Precision | Mean s | Spark s |
+|---|---|---|---|---|
+| v1 (baseline rerun) | 36% | 57% | 12.6 | 9.1 |
+| v2 | 47% | 71% | 14.3 | 10.9 |
+| v3 | 51% | 70% | 13.7 | 9.8 |
+| v3-embed | 49% | 76% | 16.3 | 10.4 |
+| v3-embed-fast (winner) | 57% | 75% | 16.7 | 11.4 |
+
+Winner per case: 0003 1/3, 0074 3/20, 0075 9/12, 0457 14/18, 0502 8/15, 0518 4/8,
+0530 11/16, 0917 9/12. Stages: SAM 3.0 s (2 calls on 7/8, 3 on 0074), CV 0.4 s,
+embed 2.0 s, Spark 11.4 s. Zero fallbacks. Reference: meta 60%/85%/28.6 s.
+
+Rejected: `TOPO_AI_SIDE=960` on the winner (`out/three-stage-v4/`): recall fell
+57% to 43% with no time saved (16.8 s). Synth regression on the winner: 100% /
+96% / 5.9 s (was 99%/96%/5.1 s), no regression.

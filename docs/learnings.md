@@ -135,3 +135,24 @@ DINOv2 ViT-S/14 crop embeddings reach 74% leave-one-out same-route retrieval on
 wall (0074: 44% to 72%). Masked crops beat plain bbox slightly.
 Implication: replace/augment the CV color-grouping signal with embedding similarity;
 needs a torch dependency decision before merging to the repo.
+
+## v3 prompt + embeddings + pruning stack on real photos
+
+Each optimization lifted the 8-photo score: v1 36%/57% → v3 51%/70% (visual
+verify + cross-group chains) → +embed 49%/76% (precision) → +prune/skip-point
+57%/75% (recall, smaller prompts). Combined winner nears the ReAct agent (60%)
+at 60% of its time (16.7 s vs 28.6 s).
+Implication: prompt scope, second similarity signal and token pruning compose.
+
+## Smaller Spark images hurt single-pass quality with no speedup
+
+`TOPO_AI_SIDE=960` on the winner cut recall 57% to 43% while time stayed 16.8 s:
+Spark's cost is reasoning tokens (~2.2k), not image pixels, but small holds and
+tape need the pixels.
+Implication: keep 1280 px; prune text rows, not image detail.
+
+## Point-prompt skip is safe and fires almost always
+
+`TOPO_SKIP_COVERED_POINT` saved the third SAM call on 7/8 real cases (0074
+correctly kept it: tap uncovered). Same candidates by construction.
+Implication: keep on; report the real call count from the trace.
