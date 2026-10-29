@@ -196,3 +196,19 @@ embed 2.0 s, Spark 11.4 s. Zero fallbacks. Reference: meta 60%/85%/28.6 s.
 Rejected: `TOPO_AI_SIDE=960` on the winner (`out/three-stage-v4/`): recall fell
 57% to 43% with no time saved (16.8 s). Synth regression on the winner: 100% /
 96% / 5.9 s (was 99%/96%/5.1 s), no regression.
+
+## 2026-10-30: Full 68-route bench + leaderboard submission
+
+All 68 Kaggle routes, one run each, same session. Server rescored identically
+(local holds submitted as x/y/r circles). Outputs `out/bench68/`, leaderboard
+runs as siho9o9o (meta d3d6a169, meta3 7f1d69ed, meta3-winner 6505b7da).
+
+| Method | Recall | Precision | F1 | Mean s | Hits/found/truth |
+|---|---|---|---|---|---|
+| meta (ReAct, 6 turns) | 60% | 68% | 0.639 | 30.9 | 353/517/587 |
+| meta3 (single-pass v1) | 54% | 46% | 0.501 | 12.7 | 319/687/587 |
+| meta3-winner (v3+embed+fast) | 57% | 57% | 0.569 | 16.1 | 334/587/587 |
+
+8-case subset overstated the gaps: full-set meta precision is 68% (was 85%),
+winner precision 57% (was 75%). Winner still leads meta3 everywhere and halves
+meta's time at -3pp recall / -11pp precision.
