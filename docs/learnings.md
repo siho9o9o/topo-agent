@@ -156,3 +156,24 @@ Implication: keep 1280 px; prune text rows, not image detail.
 `TOPO_SKIP_COVERED_POINT` saved the third SAM call on 7/8 real cases (0074
 correctly kept it: tap uncovered). Same candidates by construction.
 Implication: keep on; report the real call count from the trace.
+
+## A verify pass trades recall for precision at equal F1
+
+A second drop-only Spark call over answer crops moved 68-route scores from
+57%/57% to 50%/65% (F1 0.569 to 0.568) at +7 s. It drops true holds as well as
+lookalikes.
+Implication: verification needs higher precision itself (stricter drop rules) to
+beat single-pass F1.
+
+## Aggressive shortlisting cuts true holds on real walls
+
+Embedding-first shortlist to 24 candidates lost recall 57% to 54% at similar
+precision: pruned-away holds can't be recovered since parsing uses shortlist ids.
+Implication: shortlist for the table but parse against the full set, or widen.
+
+## Zero-LLM ranker: best recall, unusable precision
+
+Color*embed scoring with LINK chaining reached 61% recall (above meta's 60%) in
+5.6 s with no Spark calls, but precision 24% with 1478 found holds.
+Implication: a strong cheap retriever; pair it with an LLM filter instead of a
+raw answer.

@@ -212,3 +212,19 @@ runs as siho9o9o (meta d3d6a169, meta3 7f1d69ed, meta3-winner 6505b7da).
 8-case subset overstated the gaps: full-set meta precision is 68% (was 85%),
 winner precision 57% (was 75%). Winner still leads meta3 everywhere and halves
 meta's time at -3pp recall / -11pp precision.
+
+## 2026-10-30: Three improvement experiments on 68 routes
+
+Built by 3 parallel subagents on `feat/three-stage` (110 tests green), one run
+each, outputs `out/bench68x/`, leaderboard runs as siho9o9o.
+
+| Method | Recall | Precision | F1 | Mean s | Hits/found |
+|---|---|---|---|---|---|
+| exp-verify (2nd drop-only call) | 50% | 65% | 0.568 | 23.3 | 295/451 |
+| exp-shortlist (embed shortlist 24) | 54% | 55% | 0.545 | 15.9 | 319/583 |
+| exp-rank (no-LLM hybrid) | 61% | 24% | 0.349 | 5.6 | 360/1478 |
+
+Reference: meta3-winner 57%/57%/16.1 (F1 0.569), meta 60%/68%/30.9 (F1 0.639).
+Verify ties the winner on F1 but slower; shortlist loses recall (pruning cuts
+true holds); ranker has the best recall of any method at 5.6 s with zero Spark
+calls, but precision 24% (nearly 1500 found) makes it a retriever, not an answer.
