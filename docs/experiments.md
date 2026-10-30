@@ -228,3 +228,22 @@ Reference: meta3-winner 57%/57%/16.1 (F1 0.569), meta 60%/68%/30.9 (F1 0.639).
 Verify ties the winner on F1 but slower; shortlist loses recall (pruning cuts
 true holds); ranker has the best recall of any method at 5.6 s with zero Spark
 calls, but precision 24% (nearly 1500 found) makes it a retriever, not an answer.
+
+## 2026-10-31: YOLO11n-seg hold detector via D2 teacher pseudo-labels
+
+Only 19 of 2273 Kaggle images are labeled; YOLO11n-seg on GT alone underfit
+(Box/Mask mAP50 0.096/0.100, zero detections on gym photos). Converted the
+Kaggle Detectron2 Mask R-CNN weights (segm AP50 74.5) to torchvision (307
+tensors, key/channel/normalization mapping, no compiler needed) and
+pseudo-labeled 2254 unlabeled images at score>=0.6: 63,641 hold instances.
+Retrained nano on GT 14 + pseudo 2254, gold val 5: Box 0.753 / Mask 0.700.
+
+LEAKAGE NOTE: all 8 scoreboard photos (68 route cases) were inside the
+training data (5 in GT train, 3 in GT val). Clean retrain `y11n-seg-c`
+excludes all 8 (GT train 8 + pseudo 2254 / gold val 3, disjoint). Do not
+report board numbers from `y11n-seg-b`.
+
+Exported best.pt to ExecuTorch 0.6 `model.pte` (11 MB, ultralytics exporter
+with torch gate bypassed + bundled flatc); `yolo val` on the .pte matches
+torch (0.741/0.699). On-device (Galaxy S23, XNNPACK): 160-204 ms per photo,
+61-100 holds, Kotlin NMS + mask assembly, tap-to-inspect + camera capture.

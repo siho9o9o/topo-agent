@@ -177,3 +177,24 @@ Color*embed scoring with LINK chaining reached 61% recall (above meta's 60%) in
 5.6 s with no Spark calls, but precision 24% with 1478 found holds.
 Implication: a strong cheap retriever; pair it with an LLM filter instead of a
 raw answer.
+
+## 19 labeled images cannot train YOLO-seg; pseudo-labels can
+
+Nano trained on 14 GT images reached mAP50 0.10 with zero gym detections.
+Same setup + 63k teacher pseudo-labels reached Mask 0.70, near the teacher's
+own 0.745. Implication: distill the heavy public weights instead of training
+from scratch on tiny GT.
+
+## D2 weights are convertible to torchvision without detectron2
+
+R50-FPN Mask R-CNN maps cleanly (anchors, FPN, RPN, ROI heads) with three
+traps: D2 class order is bg-last vs torchvision bg-first, D2 bbox/mask
+predictors are fg-only (zero-pad the bg channel), and D2 pixel mean/std are
+in 0-255 units while torchvision normalizes 0-1 inputs. Verified visually:
+class 1 = holds, class 2 = volumes.
+
+## Scoreboard photos must be excluded before training, not after
+
+All 8 eval photos (68 cases) were in GT train/val, found only when the user
+asked. Detection mAP from that run is optimistic. Implication: hash-match
+eval photos against every training source (GT and pseudo) before launching.
