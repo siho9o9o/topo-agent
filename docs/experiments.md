@@ -247,3 +247,7 @@ Exported best.pt to ExecuTorch 0.6 `model.pte` (11 MB, ultralytics exporter
 with torch gate bypassed + bundled flatc); `yolo val` on the .pte matches
 torch (0.741/0.699). On-device (Galaxy S23, XNNPACK): 160-204 ms per photo,
 61-100 holds, Kotlin NMS + mask assembly, tap-to-inspect + camera capture.
+
+(Clean retrain cancelled per user 2026-10-31: `y11n-seg-c` stopped after a few
+epochs and removed. `y11n-seg-b` weights + 2254 pseudo-labels kept; the 8
+scoreboard photos remain seen-data for that model.)
