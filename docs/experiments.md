@@ -302,3 +302,19 @@ per photo (~2-4 s). YOLO-s clean (never saw the 8): conf 0.5.
 SAM 3.1 leads pure hold detection by ~5pp recall / ~3pp precision, but needs
 the API (~3 s/photo); YOLO-s runs on-device in 465 ms with no API. Both miss
 hardest on dense bh_0074 (236 tiny holds).
+
+## 2026-10-31: YOLO-s + Spark route finding on 68 cases (leaderboard)
+
+New `yolo3s` finder (`feat/three-stage` 7541da7): YOLO11s-seg clean masks
+through the existing CV + single-pass Spark path, no segmentation API.
+Same 68 real-route cases, both submitted as siho9o9o:
+
+| Method | Recall | Precision | F1 | Mean s |
+|---|---|---|---|---|
+| yolo3s (v1 prompt) | 42% | 52% | 0.461 | 7.1 |
+| yolo3s-winner (v3 + embed) | 51% | 66% | 0.573 | 9.5 |
+
+yolo3s-winner takes leaderboard #2 (meta 0.639 stays #1), beating
+meta3-winner 0.569 at nearly half the time (9.5 s vs 16.1 s). Precision
+66% nearly matches meta's 68%; the gap is recall (51% vs 60%), mostly
+tapped holds YOLO misses (3 zero-find cases on bh0917).
