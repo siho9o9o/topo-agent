@@ -280,3 +280,25 @@ holds, infer 390-710 ms, render 220-270 ms. Nano (leaky 11 MB) was
 160-370 ms / 58-74 holds. Device inference is nondeterministic across runs
 (two stable candidate modes, 343 vs 423) while the .pte is bit-identical on
 desktop: XNNPACK threading on the phone, not an export bug.
+
+## 2026-10-31: Hold-detection head-to-head: SAM 3.1 concept vs YOLO-s clean
+
+Same 8 photos, same greedy recall/precision @ IoU 0.5 vs GT hold masks
+(outputs `out/sam-detect-8/`). SAM: concept prompt "climbing hold", 1 call
+per photo (~2-4 s). YOLO-s clean (never saw the 8): conf 0.5.
+
+| Photo | GT | SAM R/P | YOLO-s R/P |
+|---|---|---|---|
+| bh_0003 | 7 | 0.57/0.67 | 0.71/0.83 |
+| bh_0074 | 236 | 0.47/1.00 | 0.50/0.85 |
+| bh_0075 | 63 | 0.94/1.00 | 0.94/0.98 |
+| bh_0457 | 76 | 0.88/0.92 | 0.87/0.96 |
+| bh_0502 | 72 | 0.86/0.95 | 0.71/0.91 |
+| bh_0518 | 48 | 0.92/0.90 | 0.77/0.82 |
+| bh_0530 | 55 | 0.87/0.89 | 0.75/0.82 |
+| bh_0917 | 79 | 0.82/1.00 | 0.65/0.93 |
+| MEAN | | 0.79/0.92 | 0.74/0.89 |
+
+SAM 3.1 leads pure hold detection by ~5pp recall / ~3pp precision, but needs
+the API (~3 s/photo); YOLO-s runs on-device in 465 ms with no API. Both miss
+hardest on dense bh_0074 (236 tiny holds).
