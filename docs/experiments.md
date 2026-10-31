@@ -275,6 +275,8 @@ leaky-n on Box and ties on Mask; clean-m adds +1pp Box only. Exported
 clean-s to ET 0.6 `model.pte` (40 MB); `yolo val` on the .pte matches torch
 (0.816/0.736).
 
-On-device clean-s (Galaxy S23, XNNPACK, sample photo): 80 holds, infer
-465 ms, render 237 ms. Nano (leaky 11 MB) was 160-370 ms / 58-74 holds;
-clean-s (40 MB) finds more holds at ~2x latency.
+On-device clean-s (Galaxy S23, XNNPACK, sample photo, 3 runs): 55-80
+holds, infer 390-710 ms, render 220-270 ms. Nano (leaky 11 MB) was
+160-370 ms / 58-74 holds. Device inference is nondeterministic across runs
+(two stable candidate modes, 343 vs 423) while the .pte is bit-identical on
+desktop: XNNPACK threading on the phone, not an export bug.
