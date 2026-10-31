@@ -318,3 +318,24 @@ yolo3s-winner takes leaderboard #2 (meta 0.639 stays #1), beating
 meta3-winner 0.569 at nearly half the time (9.5 s vs 16.1 s). Precision
 66% nearly matches meta's 68%; the gap is recall (51% vs 60%), mostly
 tapped holds YOLO misses (3 zero-find cases on bh0917).
+
+## 2026-10-31: Kaggle triplet net as color-grouping feature (rejected)
+
+Tested the Kaggle triplet checkpoint (`triplet_network_final.pt`, ResNet50 +
+256-d head) as an illumination-robust replacement for HSV in same-route
+retrieval: 587 truth holds across 68 real-route cases, nearest neighbor
+must share the route. Masked 128 px crops, ImageNet norm:
+
+| Feature | Same-route NN accuracy |
+|---|---|
+| HSV baseline | 354/587 = 60.3% |
+| Triplet final layer (masked) | 250/587 = 42.6% |
+| Triplet final layer (bbox) | 178/587 = 30.3% |
+| Triplet mid layer fc.0+ReLU (masked) | 321/587 = 54.7% |
+| Triplet mid layer (bbox) | 248/587 = 42.2% |
+| DINOv2-S (reference, earlier run) | 436/587 = 74.3% |
+
+Even the mid-layer embedding loses to plain HSV on 6/8 walls, and the
+ResNet50 backbone is too heavy for on-device anyway. Rejected; HSV stays
+the practical feature. Raw per-image numbers in
+`out/trip-proto/retrieval_early.json`.

@@ -213,3 +213,13 @@ On 8 held-out photos, clean-s (0.822/0.735) beats leaky-n (0.807/0.751)
 despite the latter training on those exact photos; clean-m adds almost
 nothing over clean-s. Implication: ship small for unseen gyms; medium is
 not worth 3x the size/latency.
+
+## 2026-10-31: Triplet re-ID net != route similarity
+
+The Kaggle climbing-hold triplet network was trained for instance re-ID
+(same physical hold across overlapping photos), which is the opposite of
+route grouping (different holds, same color/route). Its final embedding
+scores 42.6% same-route NN accuracy vs 60.3% for plain HSV; even its
+mid-layer features (54.7%) lose to HSV. Lesson: match the pretraining
+objective to the task before borrowing a checkpoint; DINOv2 (74.3%)
+remains the best server-side feature, HSV the best on-device one.
