@@ -274,3 +274,7 @@ Leakage is worth ~10pp Box / ~9pp Mask at nano. Clean-s already beats
 leaky-n on Box and ties on Mask; clean-m adds +1pp Box only. Exported
 clean-s to ET 0.6 `model.pte` (40 MB); `yolo val` on the .pte matches torch
 (0.816/0.736).
+
+On-device clean-s (Galaxy S23, XNNPACK, sample photo): 80 holds, infer
+465 ms, render 237 ms. Nano (leaky 11 MB) was 160-370 ms / 58-74 holds;
+clean-s (40 MB) finds more holds at ~2x latency.
