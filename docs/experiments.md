@@ -251,3 +251,26 @@ torch (0.741/0.699). On-device (Galaxy S23, XNNPACK): 160-204 ms per photo,
 (Clean retrain cancelled per user 2026-10-31: `y11n-seg-c` stopped after a few
 epochs and removed. `y11n-seg-b` weights + 2254 pseudo-labels kept; the 8
 scoreboard photos remain seen-data for that model.)
+
+## 2026-10-31: Clean n/s/m training excluding all 8 scoreboard photos
+
+Retrained YOLO11-seg n/s/m on GT-clean 8 + pseudo 2247 (8 eval photos fully
+excluded; gold val 3 incl. dense bh_0006 with 312 holds). All three
+early-stopped (~45 epochs, 6h total). Clean val looked bad (Mask 0.33-0.39)
+but the control settled it: leaky run-b weights score only 0.39/0.33 on the
+same clean val vs 0.75/0.70 on their own val — the clean val is harder, not
+the training worse (all three clean runs beat run-b there).
+
+Fair held-out eval on the 8 scoreboard photos (GT hold masks):
+
+| Weights | Seen 8? | Box mAP50 | Mask mAP50 |
+|---|---|---|---|
+| y11n-seg-b (leaky) | yes | 0.807 | 0.751 |
+| yolo11n-seg-clean | no | 0.708 | 0.658 |
+| yolo11s-seg-clean | no | 0.822 | 0.735 |
+| yolo11m-seg-clean | no | 0.834 | 0.735 |
+
+Leakage is worth ~10pp Box / ~9pp Mask at nano. Clean-s already beats
+leaky-n on Box and ties on Mask; clean-m adds +1pp Box only. Exported
+clean-s to ET 0.6 `model.pte` (40 MB); `yolo val` on the .pte matches torch
+(0.816/0.736).

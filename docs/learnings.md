@@ -198,3 +198,18 @@ class 1 = holds, class 2 = volumes.
 All 8 eval photos (68 cases) were in GT train/val, found only when the user
 asked. Detection mAP from that run is optimistic. Implication: hash-match
 eval photos against every training source (GT and pseudo) before launching.
+
+## Tiny val sets lie; control with cross-eval before concluding
+
+Clean val (3 images, 312 of 370 instances from one dense wall) showed Mask
+0.33-0.39 and looked like a training failure. Running the old 0.70 weights
+on the same val gave 0.33 — the val was harder, training was fine.
+Implication: when a split change tanks metrics, cross-evaluate old weights
+on the new split before touching hyperparameters.
+
+## Small beats nano-plus-leakage on unseen walls
+
+On 8 held-out photos, clean-s (0.822/0.735) beats leaky-n (0.807/0.751)
+despite the latter training on those exact photos; clean-m adds almost
+nothing over clean-s. Implication: ship small for unseen gyms; medium is
+not worth 3x the size/latency.
