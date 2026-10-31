@@ -339,3 +339,31 @@ Even the mid-layer embedding loses to plain HSV on 6/8 walls, and the
 ResNet50 backbone is too heavy for on-device anyway. Rejected; HSV stays
 the practical feature. Raw per-image numbers in
 `out/trip-proto/retrieval_early.json`.
+
+## 2026-10-31: CV color follow-ups — histogram beats DINOv2 (68 cases)
+
+Same 587-hold same-route NN protocol as the triplet test. Gray-world
+white balance per wall, HS histograms (16x16, Bhattacharyya/correlation,
+8x8 EMD), gray-world Lab means, DINOv2-S re-run, and z-score HSV+DINO
+ensembles:
+
+| Feature | Accuracy |
+|---|---|
+| HSV baseline | 352/587 = 60.0% |
+| Gray-world + HSV | 375/587 = 63.9% |
+| Gray-world + Lab mean | 416/587 = 70.9% |
+| Gray-world + ab mean | 367/587 = 62.5% |
+| HS hist correlation | 445/587 = 75.8% |
+| HS hist Bhattacharyya | 457/587 = 77.9% |
+| HS hist EMD | 429/587 = 73.1% |
+| HS hist Bhattacharyya (gray-world) | 456/587 = 77.7% |
+| HSV 3D hist (8x8x4) | 364/587 = 62.0% |
+| DINOv2-S masked | 433/587 = 73.8% |
+| Ensemble DINO 0.3 + HSV 0.7 | 460/587 = 78.4% |
+| Ensemble DINO 0.5 + HSV 0.5 | 459/587 = 78.2% |
+| Ensemble DINO 0.7 + HSV 0.3 | 465/587 = 79.2% |
+
+HS histogram + Bhattacharyya alone beats DINOv2 by 4pp with zero model
+and ~12 s total pairwise CPU time (EMD included). Winners: hist_bhatt
+for on-device (no weights, OpenCV only), DINO 0.7 + HSV 0.3 ensemble
+for the server path. Raw numbers in `out/cv-proto/retrieval.json`.

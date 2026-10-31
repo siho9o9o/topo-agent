@@ -223,3 +223,17 @@ scores 42.6% same-route NN accuracy vs 60.3% for plain HSV; even its
 mid-layer features (54.7%) lose to HSV. Lesson: match the pretraining
 objective to the task before borrowing a checkpoint; DINOv2 (74.3%)
 remains the best server-side feature, HSV the best on-device one.
+
+## 2026-10-31: Histograms beat embeddings for hold color grouping
+
+For same-route hold retrieval under gym lighting, a 16x16 hue-saturation
+histogram with Bhattacharyya distance (77.9%) beats both plain HSV means
+(60.0%) and DINOv2-S embeddings (73.8%) — no neural net needed. Why it
+works: a distribution over hue/saturation tolerates shadows and
+highlights on the same hold, while a single mean color shifts. Corollaries
+confirmed by ablation: adding the V channel back (3D hist 62.0%) destroys
+the gain, and gray-world balancing adds nothing once the histogram is
+used (77.7%). Gray-world + Lab mean (70.9%) is the best single-vector
+option when a compact feature is required. Practical upshot: the
+on-device route grouper can use OpenCV histograms, and the server path
+gains another point from a DINO 0.7 + HSV 0.3 z-score ensemble (79.2%).
