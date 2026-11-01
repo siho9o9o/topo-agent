@@ -416,3 +416,13 @@ the key is pasted in-app (SharedPreferences, never baked into the APK) and
 any failure keeps the offline grouping. Verified with `assembleDebug` plus
 6 Robolectric unit tests (table shape, request contract, parser); on-device
 run pending (no device attached at build time).
+
+## 2026-11-01: Phone UI — tap frame, stopwatch, grayscale route (verified on S23)
+
+`feat/hist-route-app`: tapped hold gets a black-and-white target frame,
+Spark waits show a ticking `asking spark… N.N s` stopwatch, and a confirmed
+Spark route renders in color on a grayscaled wall. Verified end-to-end via
+adb-driven taps + screenshots: tap #35 → stopwatch → `spark route 7/100 ·
+conf 0.90 · 20596 ms` with the route in color on gray. Fixed one crash on
+the way (`createBitmap` is immutable; overlay now copies mutable) with a
+Robolectric regression test.
