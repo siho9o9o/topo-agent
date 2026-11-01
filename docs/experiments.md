@@ -426,3 +426,19 @@ adb-driven taps + screenshots: tap #35 → stopwatch → `spark route 7/100 ·
 conf 0.90 · 20596 ms` with the route in color on gray. Fixed one crash on
 the way (`createBitmap` is immutable; overlay now copies mutable) with a
 Robolectric regression test.
+
+## 2026-11-01: Close-up ablation (10-case subset, no gain either way)
+
+`TOPO_NO_CLOSEUP=1` drops the 256px tap close-up (4th content part) to test
+whether 2 images suffice (`exp/no-closeup`). Same 10 cases, yolo3s-hist
+config, both directions:
+
+| Config | Recall | Precision | F1 | Mean s |
+|---|---|---|---|---|
+| With close-up | 42% | 70% | 0.525 | 7.9 |
+| Without close-up | 44% | 63% | 0.518 | 8.0 |
+
+No meaningful difference: scores sit inside Spark noise and time is
+identical (the tile is tiny). Kept the close-up; phone latency must be
+attacked elsewhere (selective Spark calls, not smaller payloads).
+Raw rows in `out/bench10noclose/`.
