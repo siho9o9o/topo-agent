@@ -367,3 +367,37 @@ HS histogram + Bhattacharyya alone beats DINOv2 by 4pp with zero model
 and ~12 s total pairwise CPU time (EMD included). Winners: hist_bhatt
 for on-device (no weights, OpenCV only), DINO 0.7 + HSV 0.3 ensemble
 for the server path. Raw numbers in `out/cv-proto/retrieval.json`.
+
+## 2026-11-01: HS-histogram hints in the pipeline (yolo3s-hist, leaderboard #2)
+
+Ported the retrieval winner into `topo_agent/pipeline.py` (`feat/hist-color`):
+`classify_colors` stores a normalized 16x16 HS histogram per hold, ranking
+similarities prefer it over the HSV mean, and `META3_HIST=1` adds a `hist`
+top-3 column to the Spark table (mirrors the `embed` column, no model needed).
+125 unittests pass, pyflakes clean.
+
+Two findings on the way: union-find grouping on hist over-merges (fallback
+F1 0.27-0.35 vs 0.356 for HSV-only, measured offline without API), so groups
+stay HSV-based; and a hints-off rerun scored 46%/65% vs the earlier 51%/66%,
+pinning Spark single-pass run-to-run noise near ±5pp recall.
+
+68-case leaderboard (`yolo3s-hist`, run 1172a18a, siho9o9o):
+
+| Method | Recall | Precision | F1 | Mean s |
+|---|---|---|---|---|
+| yolo3s-winner (before) | 51% | 66% | 0.573 | 9.5 |
+| yolo3s-hist (hist hints) | 50% | 69% | 0.581 | 12.4 |
+
+Precision 69% is the best on the board (meta 68%); the +0.008 F1 gain sits
+inside Spark noise but takes #2 behind meta 0.639. Extra time is histogram
+building on dense walls. Raw traces in `out/bench68hist2/`.
+
+## 2026-11-01: Offline tap-to-group route finder in the mobile apps
+
+Same histogram idea, fully on-device (`feat/hist-route-app`): after YOLO
+detection the app builds a 16x16 HS histogram per hold over mask-interior
+pixels and tapping a hold keeps matches (Bhattacharyya >= 0.6) bright while
+the rest dim; wall tap clears. Threshold calibrated on 3,075 same-route /
+31,577 diff-route truth pairs: 0.6 keeps 84% recall at 14% false positives.
+Android verified with a real `assembleDebug` build (25 MB APK); iOS mirrors
+the logic in `YoloSeg.swift`/`ContentView.swift` (needs an Xcode build).

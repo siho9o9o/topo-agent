@@ -237,3 +237,14 @@ used (77.7%). Gray-world + Lab mean (70.9%) is the best single-vector
 option when a compact feature is required. Practical upshot: the
 on-device route grouper can use OpenCV histograms, and the server path
 gains another point from a DINO 0.7 + HSV 0.3 z-score ensemble (79.2%).
+
+## 2026-11-01: Pairwise similarity survives, clustering dilutes
+
+HS-histogram Bhattacharyya wins same-route nearest-neighbor retrieval at
+77.9% (vs 60.0% HSV, 73.8% DINOv2), yet union-find grouping on the same
+signal over-merges through chained 14%-FPR pairs and scores no better than
+HSV groups as a fallback (F1 0.35 both). What transfers to the pipeline is
+the NN form: per-row top-3 hints for Spark, and tap-anchored thresholding
+on-device. Second lesson: Spark single-pass answers vary ±5pp recall
+run-to-run, so leaderboard deltas under ~0.02 F1 need repeated runs before
+claiming a win.
