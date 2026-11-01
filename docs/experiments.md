@@ -401,3 +401,18 @@ the rest dim; wall tap clears. Threshold calibrated on 3,075 same-route /
 31,577 diff-route truth pairs: 0.6 keeps 84% recall at 14% false positives.
 Android verified with a real `assembleDebug` build (25 MB APK); iOS mirrors
 the logic in `YoloSeg.swift`/`ContentView.swift` (needs an Xcode build).
+
+## 2026-11-01: Muse Spark direct from the Android app (no PC server)
+
+First tried serving `yolo3s` over a Cloudflare tunnel for the phone browser
+(`feat/yolo3s-web`: web GUI + `meta3`/`yolo3s` methods, smoke-tested 9 holds
+in 20.5 s), then dropped it: the phone can call the Meta API directly, which
+saves the tunnel relay and works without the PC. New `SparkRoute.kt`
+(`feat/hist-route-app`) ports the server's Spark stage — colors, groups,
+neighbors, hist hints, prompt table, v3 system prompt verbatim, annotated
+photo + tap close-up, one `muse-spark-1.3` call, strict answer parsing.
+Taps group offline instantly, then the Spark answer replaces the grouping;
+the key is pasted in-app (SharedPreferences, never baked into the APK) and
+any failure keeps the offline grouping. Verified with `assembleDebug` plus
+6 Robolectric unit tests (table shape, request contract, parser); on-device
+run pending (no device attached at build time).
