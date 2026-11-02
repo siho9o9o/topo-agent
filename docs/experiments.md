@@ -442,3 +442,11 @@ No meaningful difference: scores sit inside Spark noise and time is
 identical (the tile is tiny). Kept the close-up; phone latency must be
 attacked elsewhere (selective Spark calls, not smaller payloads).
 Raw rows in `out/bench10noclose/`.
+
+## 2026-11-01: Tap-miss recovery with a synthetic tap box (yolo3s-tapfix, F1 0.603)
+
+17 of 68 cases answered [] because YOLO missed the tap and ignores point
+prompts. `find_with` now appends a tap-centered box (`tap_made` flag) that
+rides the full pipeline. Full-68 rerun: 60%/60%/0.603 (was 50%/69%/0.581),
+recall matching meta, submitted as `yolo3s-tapfix`. Folded into PR #18 with
+E29 in PR #19.
