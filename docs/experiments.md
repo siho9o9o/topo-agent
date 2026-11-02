@@ -450,3 +450,11 @@ prompts. `find_with` now appends a tap-centered box (`tap_made` flag) that
 rides the full pipeline. Full-68 rerun: 60%/60%/0.603 (was 50%/69%/0.581),
 recall matching meta, submitted as `yolo3s-tapfix`. Folded into PR #18 with
 E29 in PR #19.
+
+## 2026-11-02: No-tint UI verified on S23 (grayscale-outside-route)
+
+Removed all hold tinting per request: the photo shows plain until a tap,
+then everything outside the route goes grayscale with a tap frame — for the
+instant offline grouping and the Spark answer alike. Verified via adb-driven
+taps + screenshots: tap #67 → grayscale + stopwatch → `spark route 13/100 ·
+conf 0.85 · 25463 ms`, no crash.
